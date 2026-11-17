@@ -35,6 +35,29 @@ import {
 } from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
+import { extractFieldErrors, getErrorMessage } from '@/lib/pocketbase/errors'
+
+const LABELS_CAMPOS: Record<string, string> = {
+  numero_processo: 'Número do Processo',
+  vara_juizo: 'Vara / Juízo',
+  parte_contraria: 'Parte Contrária',
+  status: 'Status da Causa',
+  valor_causa: 'Valor da Causa',
+  responsavel: 'Responsável pelo Processo',
+  observacoes: 'Observações',
+  fase_atual: 'Fase do Processo',
+}
+
+// Traduz o erro real do PocketBase (ex.: "Cannot be blank" em numero_processo)
+// para uma mensagem legível: "Número do Processo: cannot be blank."
+function obterMotivoAmigavel(err: unknown): string {
+  const campos = extractFieldErrors(err)
+  const partes = Object.entries(campos).map(
+    ([campo, msg]) => `${LABELS_CAMPOS[campo] || campo}: ${msg}`,
+  )
+  if (partes.length > 0) return partes.join(' | ')
+  return getErrorMessage(err)
+}
 
 const STATUS_OPTIONS: { value: CausaStatus; label: string }[] = [
   { value: 'ajuizada', label: 'Ajuizada' },
@@ -120,7 +143,9 @@ export default function CausaNova() {
       navigate(`/causas/${nova.id}`)
     } catch (err: any) {
       console.error('Erro ao cadastrar causa:', err)
-      setErrorMsg('Não foi possível salvar os dados da causa. Verifique os campos preenchidos.')
+      const fallback = 'Não foi possível salvar os dados da causa. Verifique os campos preenchidos.'
+      const campo = obterMotivoAmigavel(err)
+      setErrorMsg(campo ? `${fallback} Motivo: ${campo}` : fallback)
     } finally {
       setLoading(false)
     }

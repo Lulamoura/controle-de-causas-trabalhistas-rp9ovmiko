@@ -40,6 +40,8 @@ const wrap = (fn) => (e) => {
     // Nunca deve bloquear a operação do usuário por falha no recálculo,
     // mas deve ficar visível nos logs.
     console.log(`[Fases do Processo] Erro ao recalcular fase da causa: ${err}`)
+  } finally {
+    e.next()
   }
 }
 
