@@ -1,0 +1,286 @@
+{
+  "generatedAt": "2026-11-17T14:05:25.399Z",
+  "collections": [
+    {
+      "name": "users",
+      "type": "auth",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != '' && @request.auth.role = 'superadmin'",
+        "update": "@request.auth.id != '' && (@request.auth.role = 'superadmin' || (id = @request.auth.id && @request.body.role:changed = false && @request.body.active:changed = false))",
+        "delete": "@request.auth.id != '' && @request.auth.role = 'superadmin'"
+      },
+      "fields": [
+        {
+          "name": "name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "avatar",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "role",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["superadmin", "admin", "leitura"]
+        },
+        {
+          "name": "receive_email_alerts",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "active",
+          "type": "bool",
+          "required": false,
+          "system": false
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX `idx_tokenKey__pb_users_auth_` ON `users` (`tokenKey`)",
+        "CREATE UNIQUE INDEX `idx_email__pb_users_auth_` ON `users` (`email`) WHERE `email` != ''"
+      ]
+    },
+    {
+      "name": "causas",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != '' && (@request.auth.role = 'superadmin' || @request.auth.role = 'admin')",
+        "update": "@request.auth.id != '' && (@request.auth.role = 'superadmin' || @request.auth.role = 'admin')",
+        "delete": "@request.auth.id != '' && @request.auth.role = 'superadmin'"
+      },
+      "fields": [
+        {
+          "name": "numero_processo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "vara_juizo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "parte_contraria",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "ajuizada",
+            "em andamento",
+            "audiência marcada",
+            "contestação",
+            "sentença",
+            "recurso",
+            "arquivada"
+          ]
+        },
+        {
+          "name": "valor_causa",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "responsavel",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "observacoes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_causas_numero ON causas (numero_processo)",
+        "CREATE INDEX idx_causas_status ON causas (status)"
+      ]
+    },
+    {
+      "name": "audiencias",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != '' && (@request.auth.role = 'superadmin' || @request.auth.role = 'admin')",
+        "update": "@request.auth.id != '' && (@request.auth.role = 'superadmin' || @request.auth.role = 'admin')",
+        "delete": "@request.auth.id != '' && @request.auth.role = 'superadmin'"
+      },
+      "fields": [
+        {
+          "name": "causa_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "causas"
+        },
+        {
+          "name": "data",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "hora",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "local",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "tipo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "prazo_preparacao_dias",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "observacoes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_audiencias_causa ON audiencias (causa_id)",
+        "CREATE INDEX idx_audiencias_data ON audiencias (data)"
+      ]
+    },
+    {
+      "name": "prazos",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != '' && (@request.auth.role = 'superadmin' || @request.auth.role = 'admin')",
+        "update": "@request.auth.id != '' && (@request.auth.role = 'superadmin' || @request.auth.role = 'admin')",
+        "delete": "@request.auth.id != '' && @request.auth.role = 'superadmin'"
+      },
+      "fields": [
+        {
+          "name": "causa_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "causas"
+        },
+        {
+          "name": "tipo",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["audiência", "contestação", "sentença", "recurso", "outro"]
+        },
+        {
+          "name": "data",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "concluido",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_prazos_causa ON prazos (causa_id)",
+        "CREATE INDEX idx_prazos_data ON prazos (data)"
+      ]
+    }
+  ]
+}
