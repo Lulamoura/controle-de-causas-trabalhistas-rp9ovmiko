@@ -21,6 +21,13 @@ export type CausaStatus =
   | 'recurso'
   | 'arquivada'
 
+export type FaseProcesso =
+  | 'Petição Inicial'
+  | 'Defesa do Reclamado'
+  | 'Audiência de Conciliação'
+  | 'Instrução e Produção de Provas'
+  | 'Sentença'
+
 export interface Causa {
   id: string
   numero_processo: string
@@ -30,6 +37,7 @@ export interface Causa {
   valor_causa?: number
   responsavel: string
   observacoes?: string
+  fase_atual?: FaseProcesso
   created: string
   updated: string
 }
@@ -43,6 +51,8 @@ export interface Audiencia {
   tipo: string
   prazo_preparacao_dias?: number
   observacoes?: string
+  fase?: FaseProcesso
+  observacao_fase?: string
   created: string
   updated: string
   // expand optional

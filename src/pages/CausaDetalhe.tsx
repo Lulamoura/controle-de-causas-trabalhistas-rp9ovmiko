@@ -4,7 +4,9 @@ import { useAuth } from '@/hooks/use-auth'
 import { causasService } from '@/services/causas'
 import { audienciasService } from '@/services/audiencias'
 import { prazosService } from '@/services/prazos'
-import { Causa, Audiencia, Prazo, CausaStatus, PrazoTipo } from '@/types'
+import { Causa, Audiencia, Prazo, CausaStatus, PrazoTipo, FaseProcesso } from '@/types'
+import { FASES_PROCESSO, FASE_INICIAL, getFaseInfo, getFaseBadgeClass } from '@/lib/fases'
+import { FasesTimeline, FaseAtualBadge } from '@/components/FasesProcesso'
 import {
   formatDateBR,
   formatCurrencyBRL,
@@ -122,6 +124,8 @@ export default function CausaDetalhe() {
   const [audTipo, setAudTipo] = useState('')
   const [audPrazoPrep, setAudPrazoPrep] = useState('')
   const [audObs, setAudObs] = useState('')
+  const [audFase, setAudFase] = useState<FaseProcesso>(FASE_INICIAL)
+  const [audFaseObs, setAudFaseObs] = useState('')
   const [savingAud, setSavingAud] = useState(false)
 
   const [prazoModalOpen, setPrazoModalOpen] = useState(false)
@@ -220,6 +224,8 @@ export default function CausaDetalhe() {
     setAudTipo('Instrução e Julgamento')
     setAudPrazoPrep('5')
     setAudObs('')
+    setAudFase(FASE_INICIAL)
+    setAudFaseObs('')
     setAudienciaModalOpen(true)
   }
 
@@ -231,6 +237,8 @@ export default function CausaDetalhe() {
     setAudTipo(aud.tipo)
     setAudPrazoPrep(aud.prazo_preparacao_dias ? String(aud.prazo_preparacao_dias) : '')
     setAudObs(aud.observacoes || '')
+    setAudFase(getFaseInfo(aud.fase).value)
+    setAudFaseObs(aud.observacao_fase || '')
     setAudienciaModalOpen(true)
   }
 
@@ -258,8 +266,13 @@ export default function CausaDetalhe() {
           tipo: audTipo.trim(),
           prazo_preparacao_dias: isNaN(Number(prepDays)) ? undefined : prepDays,
           observacoes: audObs.trim() || undefined,
+          fase: audFase,
+          observacao_fase: audFaseObs.trim() || undefined,
         })
-        toast({ title: 'Audiência atualizada com sucesso!' })
+        toast({
+          title: 'Audiência atualizada com sucesso!',
+          description: 'A fase do processo foi recalculada com base na audiência mais recente.',
+        })
       } else {
         await audienciasService.create({
           causa_id: id,
@@ -269,8 +282,13 @@ export default function CausaDetalhe() {
           tipo: audTipo.trim(),
           prazo_preparacao_dias: isNaN(Number(prepDays)) ? undefined : prepDays,
           observacoes: audObs.trim() || undefined,
+          fase: audFase,
+          observacao_fase: audFaseObs.trim() || undefined,
         })
-        toast({ title: 'Audiência agendada com sucesso!' })
+        toast({
+          title: 'Audiência agendada com sucesso!',
+          description: 'A fase do processo foi atualizada automaticamente.',
+        })
       }
 
       setAudienciaModalOpen(false)
@@ -494,6 +512,7 @@ export default function CausaDetalhe() {
                 >
                   {badge.label}
                 </span>
+                <FaseAtualBadge fase={causa.fase_atual} />
                 <span className="text-xs text-slate-400">
                   Cadastrada em {formatDateBR(causa.created)}
                 </span>
@@ -754,6 +773,25 @@ export default function CausaDetalhe() {
                               &ldquo;{aud.observacoes}&rdquo;
                             </p>
                           )}
+
+                          {aud.fase && (
+                            <div className="flex items-center gap-1.5 mt-1.5">
+                              <span
+                                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border ${getFaseBadgeClass(aud.fase)}`}
+                                title={getFaseInfo(aud.fase).descricao}
+                              >
+                                Fase: {getFaseInfo(aud.fase).label}
+                              </span>
+                              {aud.observacao_fase && (
+                                <span
+                                  className="text-[11px] text-slate-500 italic truncate max-w-[240px]"
+                                  title={aud.observacao_fase}
+                                >
+                                  {aud.observacao_fase}
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
 
                         {/* Actions */}
@@ -936,6 +974,24 @@ export default function CausaDetalhe() {
             )}
           </CardContent>
         </Card>
+
+        {/* Fases do Processo: histórico/timeline */}
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-base font-bold text-slate-900">
+                Histórico das Fases do Processo
+              </CardTitle>
+              <CardDescription className="text-xs text-slate-500">
+                Linha do tempo das fases registradas nas audiências, com as observações de cada fase
+                para consulta posterior.
+              </CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent className="p-4">
+            <FasesTimeline audiencias={audiencias} />
+          </CardContent>
+        </Card>
       </div>
 
       {/* Modal: Nova / Editar Audiência */}
@@ -1008,6 +1064,37 @@ export default function CausaDetalhe() {
                   Dias que a equipe necessita antes da audiência para contato com testemunhas e
                   alinhamento.
                 </span>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="audFase">Fase do Processo *</Label>
+                <Select value={audFase} onValueChange={(val: FaseProcesso) => setAudFase(val)}>
+                  <SelectTrigger id="audFase">
+                    <SelectValue placeholder="Selecione a fase" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FASES_PROCESSO.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="text-[11px] text-slate-500 leading-snug block">
+                  {getFaseInfo(audFase).descricao} Ao salvar, a fase do processo é atualizada
+                  automaticamente para a fase da audiência mais recente.
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="audFaseObs">Observações da Fase</Label>
+                <Textarea
+                  id="audFaseObs"
+                  rows={3}
+                  placeholder="Descreva os detalhes desta fase (ex: resultado da conciliação, provas produzidas, decisão...) para consulta posterior."
+                  value={audFaseObs}
+                  onChange={(e) => setAudFaseObs(e.target.value)}
+                />
               </div>
 
               <div className="space-y-2">
