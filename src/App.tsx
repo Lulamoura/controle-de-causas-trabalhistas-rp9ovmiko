@@ -17,6 +17,7 @@ import CausasList from './pages/CausasList'
 import CausaNova from './pages/CausaNova'
 import CausaDetalhe from './pages/CausaDetalhe'
 import UsuariosPage from './pages/Usuarios'
+import MinhaConta from './pages/MinhaConta'
 import NotFound from './pages/NotFound'
 
 const App = () => (
@@ -66,6 +67,15 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <CausaDetalhe />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/minha-conta"
+              element={
+                <ProtectedRoute>
+                  <MinhaConta />
                 </ProtectedRoute>
               }
             />

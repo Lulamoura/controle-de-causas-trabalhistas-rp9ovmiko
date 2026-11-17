@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { usersService } from '@/services/users'
 import { User, UserRole } from '@/types'
 import { formatDateBR } from '@/lib/date-utils'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 import {
   Users,
   UserPlus,
@@ -81,8 +82,13 @@ export default function UsuariosPage() {
   const [editReceiveAlerts, setEditReceiveAlerts] = useState(false)
   const [editActive, setEditActive] = useState(true)
   const [editPassword, setEditPassword] = useState('')
+  const [editOldPassword, setEditOldPassword] = useState('')
   const [savingEdit, setSavingEdit] = useState(false)
   const [editError, setEditError] = useState('')
+
+  // O superadmin está editando o próprio registro: a troca de senha exige a
+  // confirmação da senha atual (oldPassword), como em qualquer usuário comum.
+  const editingSelf = editingUser?.id === currentUser?.id
 
   // Delete User Dialog
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null)
@@ -180,6 +186,7 @@ export default function UsuariosPage() {
     setEditReceiveAlerts(Boolean(target.receive_email_alerts))
     setEditActive(target.active !== false)
     setEditPassword('')
+    setEditOldPassword('')
     setEditError('')
     setEditModalOpen(true)
   }
@@ -197,6 +204,7 @@ export default function UsuariosPage() {
         receive_email_alerts: editReceiveAlerts,
         active: editActive,
         password: editPassword.trim() || undefined,
+        oldPassword: editingSelf && editPassword.trim() ? editOldPassword.trim() : undefined,
       })
 
       toast({
@@ -208,7 +216,12 @@ export default function UsuariosPage() {
       loadUsers()
     } catch (err: any) {
       console.error('Erro ao atualizar usuário:', err)
-      setEditError('Não foi possível atualizar o usuário.')
+      const detail = getErrorMessage(err)
+      setEditError(
+        /oldPassword|senha atual|invalid/i.test(detail)
+          ? 'A senha atual informada está incorreta.'
+          : `Não foi possível atualizar o usuário. ${detail}`,
+      )
     } finally {
       setSavingEdit(false)
     }
@@ -649,7 +662,28 @@ export default function UsuariosPage() {
                   onChange={(e) => setEditPassword(e.target.value)}
                   minLength={8}
                 />
+                {editingSelf && (
+                  <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
+                    Você está alterando a sua própria senha: informe também a sua senha atual para
+                    confirmar a troca.
+                  </p>
+                )}
               </div>
+
+              {editingSelf && (
+                <div className="space-y-2">
+                  <Label htmlFor="editOldPassword">Sua Senha Atual *</Label>
+                  <Input
+                    id="editOldPassword"
+                    type="password"
+                    placeholder="••••••••"
+                    value={editOldPassword}
+                    onChange={(e) => setEditOldPassword(e.target.value)}
+                    required={Boolean(editPassword.trim())}
+                    minLength={editPassword.trim() ? 1 : undefined}
+                  />
+                </div>
+              )}
 
               <div className="space-y-3 pt-2 border-t">
                 <div className="flex items-start space-x-2">

@@ -15,6 +15,8 @@ export interface UpdateUserData {
   receive_email_alerts?: boolean
   active?: boolean
   password?: string
+  /** Senha atual do usuário — obrigatória quando o próprio usuário troca a senha (não quando o superadmin redefine). */
+  oldPassword?: string
 }
 
 export const usersService = {
@@ -69,6 +71,11 @@ export const usersService = {
     if (data.password && data.password.trim()) {
       payload.password = data.password.trim()
       payload.passwordConfirm = data.password.trim()
+      // PocketBase exige a senha atual (oldPassword) quando um usuário comum
+      // altera a própria senha pela API de update do registro.
+      if (data.oldPassword) {
+        payload.oldPassword = data.oldPassword
+      }
     }
 
     const record = await pb.collection('users').update(id, payload)
@@ -82,6 +89,14 @@ export const usersService = {
       created: record.created,
       updated: record.updated,
     }
+  },
+
+  async changeOwnPassword(currentPassword: string, newPassword: string): Promise<User> {
+    if (!pb.authStore.model?.id) throw new Error('Usuário não autenticado.')
+    return await this.update(pb.authStore.model.id, {
+      password: newPassword.trim(),
+      oldPassword: currentPassword,
+    })
   },
 
   async delete(id: string): Promise<boolean> {
