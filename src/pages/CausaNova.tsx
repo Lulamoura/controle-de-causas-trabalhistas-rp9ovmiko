@@ -35,6 +35,7 @@ import {
 } from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
+import { ClientResponseError } from 'pocketbase'
 import { extractFieldErrors, getErrorMessage } from '@/lib/pocketbase/errors'
 
 const LABELS_CAMPOS: Record<string, string> = {
@@ -50,12 +51,19 @@ const LABELS_CAMPOS: Record<string, string> = {
 
 // Traduz o erro real do PocketBase (ex.: "Cannot be blank" em numero_processo)
 // para uma mensagem legível: "Número do Processo: cannot be blank."
+// Quando o erro vem sem detalhe por campo (data vazio), é falha do servidor
+// (ex.: hook quebrado), não dos campos — a mensagem diz isso explicitamente.
 function obterMotivoAmigavel(err: unknown): string {
-  const campos = extractFieldErrors(err)
-  const partes = Object.entries(campos).map(
-    ([campo, msg]) => `${LABELS_CAMPOS[campo] || campo}: ${msg}`,
-  )
-  if (partes.length > 0) return partes.join(' | ')
+  if (err instanceof ClientResponseError) {
+    const campos = extractFieldErrors(err)
+    const partes = Object.entries(campos).map(
+      ([campo, msg]) => `${LABELS_CAMPOS[campo] || campo}: ${msg}`,
+    )
+    if (partes.length > 0) return partes.join(' | ')
+    if (err.status >= 400 && err.status < 500 && !err.response?.data) {
+      return 'Falha no servidor ao gravar a causa. Tente novamente; se persistir, contate o suporte.'
+    }
+  }
   return getErrorMessage(err)
 }
 

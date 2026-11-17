@@ -78,6 +78,21 @@ export interface Prazo {
   }
 }
 
+export interface Anexo {
+  id: string
+  causa_id: string
+  arquivo: string[]
+  descricao?: string
+  uploaded_by?: string
+  created: string
+  updated: string
+  // expand optional
+  expand?: {
+    causa_id?: Causa
+    uploaded_by?: User
+  }
+}
+
 export interface ItemAgenda {
   id: string
   tipoItem: 'audiencia' | 'prazo'

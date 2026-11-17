@@ -7,6 +7,7 @@ import { prazosService } from '@/services/prazos'
 import { Causa, Audiencia, Prazo, CausaStatus, PrazoTipo, FaseProcesso } from '@/types'
 import { FASES_PROCESSO, FASE_INICIAL, getFaseInfo, getFaseBadgeClass } from '@/lib/fases'
 import { FasesTimeline, FaseAtualBadge } from '@/components/FasesProcesso'
+import { DocumentosProcesso } from '@/components/DocumentosProcesso'
 import {
   formatDateBR,
   formatCurrencyBRL,
@@ -683,6 +684,9 @@ export default function CausaDetalhe() {
           )}
         </CardContent>
       </Card>
+
+      {/* Documentos do Processo */}
+      <DocumentosProcesso causa={causa} canEdit={canEdit} canDelete={canDelete} />
 
       {/* Grid: Audiências & Prazos da Causa */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

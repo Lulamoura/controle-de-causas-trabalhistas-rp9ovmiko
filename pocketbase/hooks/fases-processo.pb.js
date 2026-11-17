@@ -1,7 +1,9 @@
-// Fase do processo: recálculo automático.
+// Fase do processo: recálculo automático (v2 — redeploy para sincronizar o runtime).
 // Toda vez que uma audiência é criada, atualizada ou excluída, a causa vinculada
 // recebe a fase da audiência de data MAIS RECENTE (empate resolvido por created),
 // ou volta para "Petição Inicial" quando não resta nenhuma audiência.
+// Regra de ouro: qualquer falha no recálculo é apenas registrada em log —
+// nunca bloqueia a operação do usuário (e.next() sempre no finally).
 
 const FASE_INICIAL = 'Petição Inicial'
 
@@ -15,17 +17,23 @@ const recalcularFase = (app, causaId) => {
     return
   }
 
-  // Audiências ordenadas da mais recente para a mais antiga
-  const audiencias = app.findRecordsByFilter(
-    'audiencias',
-    `causa_id = '${causaId}' && fase != ''`,
-    '-data,-created',
-    1,
-    0,
-  )
-
-  const novaFase =
-    audiencias.length > 0 ? audiencias[0].getString('fase') || FASE_INICIAL : FASE_INICIAL
+  let novaFase = FASE_INICIAL
+  try {
+    // Audiências ordenadas da mais recente para a mais antiga
+    const ultimas = app.findRecordsByFilter(
+      'audiencias',
+      `causa_id = '${causaId}' && fase != ''`,
+      '-data,-created',
+      1,
+      0,
+    )
+    if (ultimas.length > 0 && ultimas[0].getString('fase')) {
+      novaFase = ultimas[0].getString('fase')
+    }
+  } catch (err) {
+    console.log(`[Fases do Processo] Erro ao buscar audiências da causa: ${err}`)
+    return
+  }
 
   if (causa.getString('fase_atual') === novaFase) return
 

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T19:47:27.862Z",
+  "generatedAt": "2026-11-17T20:08:00.861Z",
   "collections": [
     {
       "name": "users",
@@ -313,6 +313,60 @@
         "CREATE INDEX idx_prazos_causa ON prazos (causa_id)",
         "CREATE INDEX idx_prazos_data ON prazos (data)"
       ]
+    },
+    {
+      "name": "anexos",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != '' && (@request.auth.role = 'superadmin' || @request.auth.role = 'admin')",
+        "update": "@request.auth.id != '' && (@request.auth.role = 'superadmin' || @request.auth.role = 'admin')",
+        "delete": "@request.auth.id != '' && @request.auth.role = 'superadmin'"
+      },
+      "fields": [
+        {
+          "name": "causa_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "causas"
+        },
+        {
+          "name": "arquivo",
+          "type": "file",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "uploaded_by",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_anexos_causa ON anexos (causa_id)"]
     }
   ]
 }
