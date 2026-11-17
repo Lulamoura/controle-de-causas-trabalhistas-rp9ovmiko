@@ -1,86 +1,59 @@
-// Diagnóstico TEMPORÁRIO (auto-executável): roda a cada 2 minutos e grava o resultado
-// apenas no log de hooks. A causa raiz do "Failed to create record." aparece quando
-// chamamos $app.save() DIRETO (sem o router, que encapsula o erro real).
-// Apagar este arquivo assim que o diagnóstico for concluído.
+// Diagnóstico TEMPORÁRIO (cron a cada 2 min): prova o estado do runtime da
+// Skip Cloud — lê o bundle do runtime (pb.js) e procura a ocorrência órfã de
+// `audiencias` que quebra todo save de causa; testa um save real de causa e
+// grava o resultado como "descricao" de um prazo criado/apagado no teste
+// (legível via db_query, sem depender de logs). Apagar quando o problema sumir.
+cronAdd('diagnostico-runtime', '*/2 * * * *', () => {
+  const resultado = { versao: 'v10-2026-11-17' }
 
-cronAdd('diagnostico-causa', '*/2 * * * *', () => {
-  const resultado = {}
-
+  // 1. O que o RUNTIME realmente executa: pb.js (bundle minificado do hook)
   try {
-    const col = $app.findCollectionByNameOrId('causas')
-    resultado.regraCreate = col.createRule
-
-    // (1) $app.save DIRETO — erro real sem encapsulamento do router
-    try {
-      const rec = new Record(col)
-      rec.set('numero_processo', 'DIAG-DIRETO-0001')
-      rec.set('vara_juizo', 'Diagnóstico')
-      rec.set('parte_contraria', 'Diagnóstico')
-      rec.set('status', 'ajuizada')
-      rec.set('responsavel', 'Diagnóstico')
-      $app.save(rec)
-      resultado.salvarDireto = 'OK: ' + rec.id
-      try {
-        $app.delete(rec)
-      } catch (_) {}
-    } catch (eSalvar) {
-      resultado.salvarDireto = 'ERRO: ' + String(eSalvar)
+    const bundle = $os.readFile('/data/controle-de-causas-trabalhistas-c21e6/pb.js')
+    const texto = String.fromCharCode.apply(null, bundle)
+    resultado.runtimePbJsTamanho = texto.length
+    // onde `audiencias` aparece como IDENTIFICADOR (não como string 'audiencias')
+    const ocorrencias = []
+    let idx = texto.indexOf('audiencias')
+    while (idx !== -1 && ocorrencias.length < 10) {
+      const antes = texto.slice(Math.max(0, idx - 30), idx)
+      const depois = texto.slice(idx + 10, idx + 40)
+      ocorrencias.push('...' + antes + '[AUDI] ' + depois + '...')
+      idx = texto.indexOf('audiencias', idx + 1)
     }
-
-    // (2) INSERT SQL bruto — testa a camada do banco diretamente
-    let idSql = ''
-    try {
-      idSql = 'diagsql' + $security.randomString(5).toLowerCase()
-      $app
-        .db()
-        .newQuery(
-          'INSERT INTO causas (id, numero_processo, vara_juizo, parte_contraria, status, responsavel) VALUES ({:id}, {:n}, {:v}, {:p}, {:s}, {:r})',
-        )
-        .bind({
-          id: idSql,
-          n: 'DIAG-SQL-0001',
-          v: 'Diagnóstico',
-          p: 'Diagnóstico',
-          s: 'ajuizada',
-          r: 'Diagnóstico',
-        })
-        .execute()
-      resultado.insertSql = 'OK'
-    } catch (eSql) {
-      resultado.insertSql = 'ERRO: ' + String(eSql)
-    }
-    try {
-      $app.db().newQuery('DELETE FROM causas WHERE id = {:id}').bind({ id: idSql }).execute()
-    } catch (_) {}
-
-    // (3) POST via HTTP com token de superusuário (regras não se aplicam)
-    try {
-      const adminsSuper = $app.findRecordsByFilter('_superusers', '', '', 1, 0)
-      const tokenAdmin = adminsSuper[0].newAuthToken()
-      const resp = $http.send({
-        url: $os.getenv('PB_INSTANCE_URL') + '/api/collections/causas/records',
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: tokenAdmin },
-        body: JSON.stringify({
-          numero_processo: 'DIAG-SUPER-0001',
-          vara_juizo: 'Diagnóstico',
-          parte_contraria: 'Diagnóstico',
-          status: 'ajuizada',
-          responsavel: 'Diagnóstico',
-        }),
-      })
-      resultado.postSuperuser = resp.statusCode + ' ' + String(resp.raw).slice(0, 300)
-      if (resp.statusCode === 200) {
-        try {
-          $app.delete($app.findRecordById('causas', resp.json.id))
-        } catch (_) {}
-      }
-    } catch (eHttp) {
-      resultado.postSuperuser = 'ERRO: ' + String(eHttp)
-    }
-  } catch (globalErr) {
-    resultado.global = String(globalErr)
+    resultado.ocorrenciasAudiencias = ocorrencias
+  } catch (eRead) {
+    resultado.runtimePbJs = 'ERRO: ' + String(eRead)
   }
 
-  console.log('[diagnostico-causa] ' + JSON.stringify(resultado))
+  // 2. Teste de save de causa (o cenário exato que quebra)
+  try {
+    const col = $app.findCollectionByNameOrId('causas')
+    const rec = new Record(col)
+    rec.set('numero_processo', 'DIAG-' + $security.randomString(4).toUpperCase())
+    rec.set('vara_juizo', 'Diagnóstico')
+    rec.set('parte_contraria', 'Diagnóstico')
+    rec.set('status', 'ajuizada')
+    rec.set('responsavel', 'Diagnóstico')
+    try {
+      $app.save(rec)
+      resultado.salvarCausa = 'OK: ' + rec.id
+    } catch (eSalvar) {
+      resultado.salvarCausa = 'ERRO: ' + String(eSalvar)
+    }
+  } catch (eCol) {
+    resultado.salvarCausa = 'ERRO COL: ' + String(eCol)
+  }
+
+  // 3. Persistir o resultado como um registro "descartável" legível do lado de fora
+  try {
+    const colPrazos = $app.findCollectionByNameOrId('prazos')
+    const p = new Record(colPrazos)
+    p.set('causa_id', '0000000000000000') // placeholder — será apagado abaixo
+    p.set('tipo', 'outro')
+    p.set('data', new Date().toISOString().slice(0, 10) + ' 00:00:00.000Z')
+    p.set('descricao', 'DIAG-RUNTIME ' + JSON.stringify(resultado).slice(0, 900))
+    p.set('concluido', true)
+    $app.save(p)
+    $app.delete(p)
+  } catch (_) {}
 })
