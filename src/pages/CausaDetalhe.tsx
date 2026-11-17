@@ -6,6 +6,7 @@ import { audienciasService } from '@/services/audiencias'
 import { prazosService } from '@/services/prazos'
 import { Causa, Audiencia, Prazo, CausaStatus, PrazoTipo, FaseProcesso } from '@/types'
 import { FASES_PROCESSO, FASE_INICIAL, getFaseInfo, getFaseBadgeClass } from '@/lib/fases'
+import { recalcularFaseCausa } from '@/lib/fases-frontend'
 import { FasesTimeline, FaseAtualBadge } from '@/components/FasesProcesso'
 import { DocumentosProcesso } from '@/components/DocumentosProcesso'
 import {
@@ -270,10 +271,6 @@ export default function CausaDetalhe() {
           fase: audFase,
           observacao_fase: audFaseObs.trim() || undefined,
         })
-        toast({
-          title: 'Audiência atualizada com sucesso!',
-          description: 'A fase do processo foi recalculada com base na audiência mais recente.',
-        })
       } else {
         await audienciasService.create({
           causa_id: id,
@@ -286,11 +283,20 @@ export default function CausaDetalhe() {
           fase: audFase,
           observacao_fase: audFaseObs.trim() || undefined,
         })
-        toast({
-          title: 'Audiência agendada com sucesso!',
-          description: 'A fase do processo foi atualizada automaticamente.',
-        })
       }
+
+      // Recalcula a fase da causa no FRONTEND (fase da audiência mais recente)
+      // e atualiza o campo fase_atual diretamente pela API do PocketBase.
+      const causaAtualizada = await recalcularFaseCausa(id)
+
+      toast({
+        title: editingAudiencia
+          ? 'Audiência atualizada com sucesso!'
+          : 'Audiência agendada com sucesso!',
+        description: causaAtualizada
+          ? `Fase do processo atualizada para: ${causaAtualizada.fase_atual}.`
+          : 'A fase do processo foi recalculada com base na audiência mais recente.',
+      })
 
       setAudienciaModalOpen(false)
       loadAll()
@@ -310,6 +316,11 @@ export default function CausaDetalhe() {
     try {
       setDeletingItem(true)
       await audienciasService.delete(deleteAudTarget.id)
+
+      // Recalcula a fase da causa no FRONTEND (fase da audiência restante
+      // mais recente por data) e grava o campo fase_atual diretamente.
+      await recalcularFaseCausa(id)
+
       toast({ title: 'Audiência excluída com sucesso.' })
       setDeleteAudTarget(null)
       loadAll()

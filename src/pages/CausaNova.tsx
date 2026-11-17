@@ -37,6 +37,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
 import { ClientResponseError } from 'pocketbase'
 import { extractFieldErrors, getErrorMessage } from '@/lib/pocketbase/errors'
+import { FASE_INICIAL } from '@/lib/fases'
 
 const LABELS_CAMPOS: Record<string, string> = {
   numero_processo: 'Número do Processo',
@@ -141,6 +142,9 @@ export default function CausaNova() {
         valor_causa: isNaN(Number(parsedValor)) ? undefined : Number(parsedValor),
         responsavel: responsavel.trim(),
         observacoes: observacoes.trim() || undefined,
+        // Causa nova entra sempre na fase inicial "Petição Inicial"
+        // (recálculo futuro é feito no frontend ao registrar audiências).
+        fase_atual: FASE_INICIAL,
       })
 
       toast({
