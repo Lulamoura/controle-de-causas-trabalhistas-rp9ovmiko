@@ -9,6 +9,7 @@ import {
   Bell,
   User as UserIcon,
   FolderKanban,
+  BarChart3,
   ShieldCheck,
   ShieldAlert,
   Eye,
@@ -107,6 +108,20 @@ export function AppNavbar() {
                 </Link>
               )}
 
+              {canEdit && (
+                <Link
+                  to="/relatorios"
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
+                    isActive('/relatorios')
+                      ? 'bg-slate-800 text-white shadow-sm'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                  }`}
+                >
+                  <BarChart3 className="h-4 w-4" />
+                  Relatórios
+                </Link>
+              )}
+
               {isSuperadmin && (
                 <Link
                   to="/usuarios"
@@ -189,6 +204,17 @@ export function AppNavbar() {
             >
               <FolderKanban className="h-3.5 w-3.5" />
               Cadastros
+            </Link>
+          )}
+          {canEdit && (
+            <Link
+              to="/relatorios"
+              className={`px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 ${
+                isActive('/relatorios') ? 'bg-slate-800 text-white' : 'text-slate-300'
+              }`}
+            >
+              <BarChart3 className="h-3.5 w-3.5" />
+              Relatórios
             </Link>
           )}
           {isSuperadmin && (

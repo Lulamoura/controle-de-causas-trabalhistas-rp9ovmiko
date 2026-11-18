@@ -18,6 +18,7 @@ import CausaNova from './pages/CausaNova'
 import CausaDetalhe from './pages/CausaDetalhe'
 import UsuariosPage from './pages/Usuarios'
 import Cadastros from './pages/Cadastros'
+import Relatorios from './pages/Relatorios'
 import MinhaConta from './pages/MinhaConta'
 import NotFound from './pages/NotFound'
 
@@ -77,6 +78,15 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <MinhaConta />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/relatorios"
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <Relatorios />
                 </ProtectedRoute>
               }
             />
