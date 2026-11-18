@@ -18,9 +18,11 @@ export default function Layout() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       {withSidebar ? (
-        <div className="flex min-h-screen">
+        // Mobile: coluna (cabeçalho com hamburger no topo + conteúdo em largura total).
+        // Desktop (md+): linha (sidebar fixa à esquerda + conteúdo).
+        <div className="flex flex-col md:flex-row min-h-screen">
           <AppSidebar />
-          <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex-1 flex flex-col min-w-0 w-full">
             <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-6">
               <Outlet />
             </main>
