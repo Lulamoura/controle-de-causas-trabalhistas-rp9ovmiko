@@ -17,6 +17,7 @@ import CausasList from './pages/CausasList'
 import CausaNova from './pages/CausaNova'
 import CausaDetalhe from './pages/CausaDetalhe'
 import UsuariosPage from './pages/Usuarios'
+import Cadastros from './pages/Cadastros'
 import MinhaConta from './pages/MinhaConta'
 import NotFound from './pages/NotFound'
 
@@ -85,6 +86,15 @@ const App = () => (
               element={
                 <ProtectedRoute requiredRole="superadmin">
                   <UsuariosPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/cadastros"
+              element={
+                <ProtectedRoute requiredRole="superadmin">
+                  <Cadastros />
                 </ProtectedRoute>
               }
             />

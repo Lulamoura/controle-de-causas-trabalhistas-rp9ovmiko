@@ -8,6 +8,7 @@ import {
   LogOut,
   Bell,
   User as UserIcon,
+  FolderKanban,
   ShieldCheck,
   ShieldAlert,
   Eye,
@@ -94,6 +95,20 @@ export function AppNavbar() {
 
               {isSuperadmin && (
                 <Link
+                  to="/cadastros"
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
+                    isActive('/cadastros')
+                      ? 'bg-slate-800 text-white shadow-sm'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                  }`}
+                >
+                  <FolderKanban className="h-4 w-4" />
+                  Cadastros
+                </Link>
+              )}
+
+              {isSuperadmin && (
+                <Link
                   to="/usuarios"
                   className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
                     isActive('/usuarios')
@@ -165,6 +180,17 @@ export function AppNavbar() {
             <Briefcase className="h-3.5 w-3.5" />
             Causas
           </Link>
+          {isSuperadmin && (
+            <Link
+              to="/cadastros"
+              className={`px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 ${
+                isActive('/cadastros') ? 'bg-slate-800 text-white' : 'text-slate-300'
+              }`}
+            >
+              <FolderKanban className="h-3.5 w-3.5" />
+              Cadastros
+            </Link>
+          )}
           {isSuperadmin && (
             <Link
               to="/usuarios"

@@ -30,6 +30,12 @@ export type FaseProcesso =
 
 export interface Causa {
   id: string
+  cliente?: string
+  funcao_reclamante?: string
+  expand?: {
+    cliente?: Cliente
+    funcao_reclamante?: FuncaoReclamante
+  }
   numero_processo: string
   vara_juizo: string
   parte_contraria: string
@@ -76,6 +82,22 @@ export interface Prazo {
   expand?: {
     causa_id?: Causa
   }
+}
+
+export interface Cliente {
+  id: string
+  nome: string
+  ativo: boolean
+  created: string
+  updated: string
+}
+
+export interface FuncaoReclamante {
+  id: string
+  nome: string
+  ativo: boolean
+  created: string
+  updated: string
 }
 
 export interface Anexo {

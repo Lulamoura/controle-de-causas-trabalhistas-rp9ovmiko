@@ -4,7 +4,17 @@ import { useAuth } from '@/hooks/use-auth'
 import { causasService } from '@/services/causas'
 import { audienciasService } from '@/services/audiencias'
 import { prazosService } from '@/services/prazos'
-import { Causa, Audiencia, Prazo, CausaStatus, PrazoTipo, FaseProcesso } from '@/types'
+import { clientesService, funcoesService } from '@/services/cadastros'
+import {
+  Causa,
+  Audiencia,
+  Prazo,
+  CausaStatus,
+  PrazoTipo,
+  FaseProcesso,
+  Cliente,
+  FuncaoReclamante,
+} from '@/types'
 import { FASES_PROCESSO, FASE_INICIAL, getFaseInfo, getFaseBadgeClass } from '@/lib/fases'
 import { recalcularFaseCausa } from '@/lib/fases-frontend'
 import { FasesTimeline, FaseAtualBadge } from '@/components/FasesProcesso'
@@ -115,7 +125,29 @@ export default function CausaDetalhe() {
   const [editValor, setEditValor] = useState('')
   const [editResponsavel, setEditResponsavel] = useState('')
   const [editObservacoes, setEditObservacoes] = useState('')
+  const [editCliente, setEditCliente] = useState<string>('')
+  const [editFuncao, setEditFuncao] = useState<string>('')
   const [savingCausa, setSavingCausa] = useState(false)
+
+  // Cadastros (clientes / funções) para os combos
+  const [clientes, setClientes] = useState<Cliente[]>([])
+  const [funcoes, setFuncoes] = useState<FuncaoReclamante[]>([])
+
+  useEffect(() => {
+    const carregarCadastros = async () => {
+      try {
+        const [cls, fns] = await Promise.all([
+          clientesService.getAll(true),
+          funcoesService.getAll(true),
+        ])
+        setClientes(cls as Cliente[])
+        setFuncoes(fns as FuncaoReclamante[])
+      } catch (error) {
+        console.error('Erro ao carregar cadastros (clientes/funções):', error)
+      }
+    }
+    carregarCadastros()
+  }, [])
 
   // Modals for Audiencia / Prazo
   const [audienciaModalOpen, setAudienciaModalOpen] = useState(false)
@@ -165,6 +197,8 @@ export default function CausaDetalhe() {
       setEditValor(c.valor_causa ? String(c.valor_causa) : '')
       setEditResponsavel(c.responsavel)
       setEditObservacoes(c.observacoes || '')
+      setEditCliente(c.cliente || '')
+      setEditFuncao(c.funcao_reclamante || '')
     } catch (error) {
       console.error('Erro ao carregar causa:', error)
       toast({
@@ -198,6 +232,8 @@ export default function CausaDetalhe() {
         valor_causa: isNaN(Number(parsedValor)) ? undefined : Number(parsedValor),
         responsavel: editResponsavel.trim(),
         observacoes: editObservacoes.trim() || undefined,
+        cliente: editCliente || undefined,
+        funcao_reclamante: editFuncao || undefined,
       })
 
       setCausa(updated)
@@ -603,6 +639,48 @@ export default function CausaDetalhe() {
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="editCliente">Cliente</Label>
+                  <Select
+                    value={editCliente || undefined}
+                    onValueChange={(val) => setEditCliente(val === '__vazio__' ? '' : val)}
+                  >
+                    <SelectTrigger id="editCliente">
+                      <SelectValue placeholder="Selecione o cliente (opcional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__vazio__">—</SelectItem>
+                      {clientes.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="editFuncao">Função do Reclamante</Label>
+                  <Select
+                    value={editFuncao || undefined}
+                    onValueChange={(val) => setEditFuncao(val === '__vazio__' ? '' : val)}
+                  >
+                    <SelectTrigger id="editFuncao">
+                      <SelectValue placeholder="Selecione a função (opcional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__vazio__">—</SelectItem>
+                      {funcoes.map((f) => (
+                        <SelectItem key={f.id} value={f.id}>
+                          {f.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="editResponsavel">Responsável *</Label>
                 <Input
@@ -672,6 +750,24 @@ export default function CausaDetalhe() {
                   Responsável
                 </span>
                 <p className="text-sm font-medium text-slate-900">{causa.responsavel}</p>
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-xs uppercase font-semibold text-slate-500 tracking-wider">
+                  Cliente
+                </span>
+                <p className="text-sm font-medium text-slate-900">
+                  {clientes.find((c) => c.id === causa.cliente)?.nome || '—'}
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-xs uppercase font-semibold text-slate-500 tracking-wider">
+                  Função do Reclamante
+                </span>
+                <p className="text-sm font-medium text-slate-900">
+                  {funcoes.find((f) => f.id === causa.funcao_reclamante)?.nome || '—'}
+                </p>
               </div>
 
               <div className="space-y-1">

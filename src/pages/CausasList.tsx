@@ -269,6 +269,11 @@ export default function CausasList() {
                         </td>
                         <td className="py-3.5 px-4 text-slate-800 font-medium">
                           {causa.parte_contraria}
+                          {causa.expand?.cliente?.nome && (
+                            <span className="block text-[11px] text-slate-400">
+                              Cliente: {causa.expand.cliente.nome}
+                            </span>
+                          )}
                         </td>
                         <td
                           className="py-3.5 px-4 text-slate-600 max-w-[200px] truncate"

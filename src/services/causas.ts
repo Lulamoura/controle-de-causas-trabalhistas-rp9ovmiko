@@ -5,12 +5,15 @@ export const causasService = {
   async getAll(): Promise<Causa[]> {
     const records = await pb.collection('causas').getFullList<Causa>({
       sort: '-created',
+      expand: 'cliente',
     })
     return records
   },
 
   async getById(id: string): Promise<Causa> {
-    return await pb.collection('causas').getOne<Causa>(id)
+    return await pb.collection('causas').getOne<Causa>(id, {
+      expand: 'cliente,funcao_reclamante',
+    })
   },
 
   async create(data: Omit<Causa, 'id' | 'created' | 'updated'>): Promise<Causa> {

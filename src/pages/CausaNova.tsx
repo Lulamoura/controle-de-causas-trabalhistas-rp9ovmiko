@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { causasService } from '@/services/causas'
-import { CausaStatus } from '@/types'
+import { clientesService, funcoesService } from '@/services/cadastros'
+import { CausaStatus, Cliente, FuncaoReclamante } from '@/types'
 import {
   ArrowLeft,
   Briefcase,
@@ -90,8 +91,29 @@ export default function CausaNova() {
   const [valorCausa, setValorCausa] = useState<string>('')
   const [responsavel, setResponsavel] = useState(user?.name || '')
   const [observacoes, setObservacoes] = useState('')
+  const [cliente, setCliente] = useState<string>('')
+  const [funcaoReclamante, setFuncaoReclamante] = useState<string>('')
+  const [clientes, setClientes] = useState<Cliente[]>([])
+  const [funcoes, setFuncoes] = useState<FuncaoReclamante[]>([])
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
+
+  useEffect(() => {
+    // Carrega cadastros para os combos (ativos apenas; option vazia "—" sempre presente)
+    const carregarCadastros = async () => {
+      try {
+        const [cls, fns] = await Promise.all([
+          clientesService.getAll(true),
+          funcoesService.getAll(true),
+        ])
+        setClientes(cls as Cliente[])
+        setFuncoes(fns as FuncaoReclamante[])
+      } catch (error) {
+        console.error('Erro ao carregar cadastros (clientes/funções):', error)
+      }
+    }
+    carregarCadastros()
+  }, [])
 
   if (!canEdit) {
     return (
@@ -142,6 +164,8 @@ export default function CausaNova() {
         valor_causa: isNaN(Number(parsedValor)) ? undefined : Number(parsedValor),
         responsavel: responsavel.trim(),
         observacoes: observacoes.trim() || undefined,
+        cliente: cliente || undefined,
+        funcao_reclamante: funcaoReclamante || undefined,
         // Causa nova entra sempre na fase inicial "Petição Inicial"
         // (recálculo futuro é feito no frontend ao registrar audiências).
         fase_atual: FASE_INICIAL,
@@ -275,6 +299,54 @@ export default function CausaNova() {
                   onChange={(e) => setResponsavel(e.target.value)}
                   required
                 />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="cliente">Cliente</Label>
+                <Select
+                  value={cliente || undefined}
+                  onValueChange={(val) => setCliente(val === '__vazio__' ? '' : val)}
+                >
+                  <SelectTrigger id="cliente">
+                    <SelectValue placeholder="Selecione o cliente (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__vazio__">—</SelectItem>
+                    {clientes.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="text-[11px] text-slate-500">
+                  Cadastro gerenciado pelo superadmin
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="funcaoReclamante">Função do Reclamante</Label>
+                <Select
+                  value={funcaoReclamante || undefined}
+                  onValueChange={(val) => setFuncaoReclamante(val === '__vazio__' ? '' : val)}
+                >
+                  <SelectTrigger id="funcaoReclamante">
+                    <SelectValue placeholder="Selecione a função (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__vazio__">—</SelectItem>
+                    {funcoes.map((f) => (
+                      <SelectItem key={f.id} value={f.id}>
+                        {f.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="text-[11px] text-slate-500">
+                  Cadastro gerenciado pelo superadmin
+                </span>
               </div>
             </div>
 

@@ -39,7 +39,7 @@ import {
   ExternalLink,
 } from 'lucide-react'
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 MB
+const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100 MB
 
 const MIME_PERMITIDOS = [
   'application/pdf',
@@ -131,7 +131,7 @@ export function DocumentosProcesso({ causa, canEdit, canDelete }: DocumentosProc
         variant: 'destructive',
         title: 'Arquivo não aceito',
         description:
-          'São aceitos PDF, imagens (JPG/PNG/WebP), DOCX e XLSX, com até 10 MB por arquivo.' +
+          'São aceitos PDF, imagens (JPG/PNG/WebP), DOCX e XLSX, com até 100 MB por arquivo.' +
           (invalidos.length ? ` Rejeitado(s): ${invalidos.map((f) => f.name).join(', ')}` : '') +
           (grandes.length ? ` Grande(s): ${grandes.map((f) => f.name).join(', ')}` : ''),
       })
