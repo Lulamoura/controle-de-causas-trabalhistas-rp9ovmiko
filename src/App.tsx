@@ -93,7 +93,7 @@ const App = () => (
             <Route
               path="/cadastros"
               element={
-                <ProtectedRoute requiredRole="superadmin">
+                <ProtectedRoute requiredRole="admin">
                   <Cadastros />
                 </ProtectedRoute>
               }

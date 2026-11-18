@@ -49,7 +49,10 @@ const MENSAGEM_EM_USO =
   'Este registro está em uso por uma ou mais causas e não pode ser excluído. Desative-o para que não apareça em novos cadastros.'
 
 export default function Cadastros() {
-  const { canEdit, canDelete } = useAuth()
+  const { isLeitura } = useAuth()
+  // Nesta tela, admin e superadmin cadastram, editam e excluem; leitura só vê.
+  const canEdit = !isLeitura
+  const canDelete = !isLeitura
   const navigate = useNavigate()
   const { toast } = useToast()
 
@@ -301,7 +304,7 @@ export default function Cadastros() {
                               size="sm"
                               onClick={() => setDeleteTarget(item)}
                               className="h-8 text-red-600 hover:text-red-800 hover:bg-red-50"
-                              title="Excluir (Superadmin)"
+                              title="Excluir"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -321,8 +324,8 @@ export default function Cadastros() {
         <Alert className="max-w-xl">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription className="text-xs">
-            Seu perfil pode apenas visualizar os cadastros. Somente superadmin cadastra, edita e
-            exclui.
+            Seu perfil pode apenas visualizar os cadastros. Admin e superadmin cadastram, editam e
+            excluem.
           </AlertDescription>
         </Alert>
       )}

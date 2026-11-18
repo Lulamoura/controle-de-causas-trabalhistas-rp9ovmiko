@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
 export function AppNavbar() {
-  const { user, signOut, isSuperadmin } = useAuth()
+  const { user, signOut, canEdit, isSuperadmin } = useAuth()
   const location = useLocation()
 
   const isActive = (path: string) => {
@@ -93,7 +93,7 @@ export function AppNavbar() {
                 Causas
               </Link>
 
-              {isSuperadmin && (
+              {canEdit && (
                 <Link
                   to="/cadastros"
                   className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
@@ -180,7 +180,7 @@ export function AppNavbar() {
             <Briefcase className="h-3.5 w-3.5" />
             Causas
           </Link>
-          {isSuperadmin && (
+          {canEdit && (
             <Link
               to="/cadastros"
               className={`px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 ${

@@ -26,8 +26,16 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
-  if (requiredRole === 'superadmin' && user?.role !== 'superadmin') {
-    return <Navigate to="/" replace />
+  // Hierarquia de perfis: superadmin > admin > leitura.
+  // requiredRole="superadmin" libera só superadmin; "admin" libera admin e
+  // superadmin; "leitura" (ou ausente) libera qualquer usuário autenticado.
+  const hierarquia: Record<string, number> = { leitura: 1, admin: 2, superadmin: 3 }
+  if (requiredRole) {
+    const perfilAtual = hierarquia[user?.role ?? 'leitura'] ?? 0
+    const minimo = hierarquia[requiredRole] ?? 0
+    if (perfilAtual < minimo) {
+      return <Navigate to="/" replace />
+    }
   }
 
   return children

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-18T18:46:57.367Z",
+  "generatedAt": "2026-11-18T19:12:02.377Z",
   "collections": [
     {
       "name": "users",
@@ -388,9 +388,9 @@
       "apiRules": {
         "list": "@request.auth.id != ''",
         "view": "@request.auth.id != ''",
-        "create": "@request.auth.id != '' && @request.auth.role = 'superadmin'",
-        "update": "@request.auth.id != '' && @request.auth.role = 'superadmin'",
-        "delete": "@request.auth.id != '' && @request.auth.role = 'superadmin'"
+        "create": "@request.auth.id != '' && (@request.auth.role = 'superadmin' || @request.auth.role = 'admin')",
+        "update": "@request.auth.id != '' && (@request.auth.role = 'superadmin' || @request.auth.role = 'admin')",
+        "delete": "@request.auth.id != '' && (@request.auth.role = 'superadmin' || @request.auth.role = 'admin')"
       },
       "fields": [
         {
@@ -428,9 +428,9 @@
       "apiRules": {
         "list": "@request.auth.id != ''",
         "view": "@request.auth.id != ''",
-        "create": "@request.auth.id != '' && @request.auth.role = 'superadmin'",
-        "update": "@request.auth.id != '' && @request.auth.role = 'superadmin'",
-        "delete": "@request.auth.id != '' && @request.auth.role = 'superadmin'"
+        "create": "@request.auth.id != '' && (@request.auth.role = 'superadmin' || @request.auth.role = 'admin')",
+        "update": "@request.auth.id != '' && (@request.auth.role = 'superadmin' || @request.auth.role = 'admin')",
+        "delete": "@request.auth.id != '' && (@request.auth.role = 'superadmin' || @request.auth.role = 'admin')"
       },
       "fields": [
         {
