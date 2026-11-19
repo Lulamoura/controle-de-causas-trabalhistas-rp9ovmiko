@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-18T19:24:39.756Z",
+  "generatedAt": "2026-11-19T20:47:54.537Z",
   "collections": [
     {
       "name": "users",
@@ -258,6 +258,13 @@
           "type": "text",
           "required": false,
           "system": false
+        },
+        {
+          "name": "tipo_audiencia",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "tipos_audiencia"
         }
       ],
       "indexes": [
@@ -461,6 +468,46 @@
         }
       ],
       "indexes": ["CREATE UNIQUE INDEX idx_funcoes_reclamante_nome ON funcoes_reclamante (nome)"]
+    },
+    {
+      "name": "tipos_audiencia",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != '' && (@request.auth.role = 'superadmin' || @request.auth.role = 'admin')",
+        "update": "@request.auth.id != '' && (@request.auth.role = 'superadmin' || @request.auth.role = 'admin')",
+        "delete": "@request.auth.id != '' && (@request.auth.role = 'superadmin' || @request.auth.role = 'admin')"
+      },
+      "fields": [
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "ativo",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE UNIQUE INDEX idx_tipos_audiencia_nome ON tipos_audiencia (nome)"]
     }
   ]
 }

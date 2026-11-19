@@ -55,6 +55,7 @@ export interface Audiencia {
   hora: string // HH:mm
   local: string
   tipo: string
+  tipo_audiencia?: string
   prazo_preparacao_dias?: number
   observacoes?: string
   fase?: FaseProcesso
@@ -93,6 +94,14 @@ export interface Cliente {
 }
 
 export interface FuncaoReclamante {
+  id: string
+  nome: string
+  ativo: boolean
+  created: string
+  updated: string
+}
+
+export interface TipoAudiencia {
   id: string
   nome: string
   ativo: boolean

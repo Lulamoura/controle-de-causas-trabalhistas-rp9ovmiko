@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
-import { clientesService, funcoesService } from '@/services/cadastros'
-import { Cliente, FuncaoReclamante } from '@/types'
+import { clientesService, funcoesService, tiposAudienciaService } from '@/services/cadastros'
+import { Cliente, FuncaoReclamante, TipoAudiencia } from '@/types'
 import {
   Building,
   HardHat,
+  Gavel,
   Plus,
   Pencil,
   Trash2,
@@ -14,7 +15,6 @@ import {
   AlertCircle,
   Loader2,
   Save,
-  X,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -43,10 +43,17 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
 
-type Aba = 'clientes' | 'funcoes'
+type Aba = 'clientes' | 'funcoes' | 'tipos'
+type Item = Cliente | FuncaoReclamante | TipoAudiencia
 
 const MENSAGEM_EM_USO =
-  'Este registro está em uso por uma ou mais causas e não pode ser excluído. Desative-o para que não apareça em novos cadastros.'
+  'Este registro está em uso por uma ou mais causas ou audiências e não pode ser excluído. Desative-o para que não apareça em novos cadastros.'
+
+const SINGULAR: Record<Aba, string> = {
+  clientes: 'Cliente',
+  funcoes: 'Função',
+  tipos: 'Tipo de Audiência',
+}
 
 export default function Cadastros() {
   const { isLeitura } = useAuth()
@@ -59,25 +66,38 @@ export default function Cadastros() {
   const [aba, setAba] = useState<Aba>('clientes')
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [funcoes, setFuncoes] = useState<FuncaoReclamante[]>([])
+  const [tipos, setTipos] = useState<TipoAudiencia[]>([])
   const [loading, setLoading] = useState(true)
 
   // Formulário (criar/editar)
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [editando, setEditando] = useState<Cliente | FuncaoReclamante | null>(null)
+  const [editando, setEditando] = useState<Item | null>(null)
   const [nome, setNome] = useState('')
   const [ativo, setAtivo] = useState(true)
   const [salvando, setSalvando] = useState(false)
 
   // Exclusão
-  const [deleteTarget, setDeleteTarget] = useState<Cliente | FuncaoReclamante | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Item | null>(null)
   const [excluindo, setExcluindo] = useState(false)
+
+  const serviceAtual = () =>
+    aba === 'clientes'
+      ? clientesService
+      : aba === 'funcoes'
+        ? funcoesService
+        : tiposAudienciaService
 
   const carregar = async () => {
     try {
       setLoading(true)
-      const [cls, fns] = await Promise.all([clientesService.getAll(), funcoesService.getAll()])
+      const [cls, fns, tps] = await Promise.all([
+        clientesService.getAll(),
+        funcoesService.getAll(),
+        tiposAudienciaService.getAll(),
+      ])
       setClientes(cls as Cliente[])
       setFuncoes(fns as FuncaoReclamante[])
+      setTipos(tps as TipoAudiencia[])
     } catch (error) {
       console.error('Erro ao carregar cadastros:', error)
       toast({
@@ -94,7 +114,7 @@ export default function Cadastros() {
     carregar()
   }, [])
 
-  const listaAtual = aba === 'clientes' ? clientes : funcoes
+  const listaAtual: Item[] = aba === 'clientes' ? clientes : aba === 'funcoes' ? funcoes : tipos
 
   const abrirNovo = () => {
     setEditando(null)
@@ -103,7 +123,7 @@ export default function Cadastros() {
     setDialogOpen(true)
   }
 
-  const abrirEditar = (item: Cliente | FuncaoReclamante) => {
+  const abrirEditar = (item: Item) => {
     setEditando(item)
     setNome(item.nome)
     setAtivo(item.ativo)
@@ -115,12 +135,11 @@ export default function Cadastros() {
     if (!nome.trim()) return
     try {
       setSalvando(true)
+      const service = serviceAtual()
       if (editando) {
-        const service = aba === 'clientes' ? clientesService : funcoesService
         await service.update(editando.id, { nome: nome.trim(), ativo })
         toast({ title: 'Cadastro atualizado com sucesso.' })
       } else {
-        const service = aba === 'clientes' ? clientesService : funcoesService
         await service.create(nome.trim(), ativo)
         toast({ title: 'Cadastro criado com sucesso.' })
       }
@@ -142,8 +161,7 @@ export default function Cadastros() {
     if (!deleteTarget) return
     try {
       setExcluindo(true)
-      const service = aba === 'clientes' ? clientesService : funcoesService
-      await service.delete(deleteTarget.id)
+      await serviceAtual().delete(deleteTarget.id)
       toast({ title: 'Registro excluído com sucesso.' })
       setDeleteTarget(null)
       carregar()
@@ -159,6 +177,13 @@ export default function Cadastros() {
     }
   }
 
+  const abaClass = (ativa: boolean) =>
+    `px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5 ${
+      ativa
+        ? 'border-blue-900 text-blue-900'
+        : 'border-transparent text-slate-500 hover:text-slate-800'
+    }`
+
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
@@ -166,7 +191,8 @@ export default function Cadastros() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">Cadastros</h1>
           <p className="text-sm text-slate-600">
-            Gerencie os clientes e as funções de mão de obra usados nos cadastros de causas.
+            Gerencie os clientes, as funções de mão de obra e os tipos de audiência usados nos
+            cadastros.
           </p>
         </div>
 
@@ -185,7 +211,7 @@ export default function Cadastros() {
               onClick={abrirNovo}
               className="bg-blue-900 hover:bg-blue-800 text-white gap-1.5 shadow-sm"
             >
-              <Plus className="h-4 w-4" /> Novo {aba === 'clientes' ? 'Cliente' : 'Função'}
+              <Plus className="h-4 w-4" /> Novo {SINGULAR[aba]}
             </Button>
           )}
           <Button
@@ -199,29 +225,24 @@ export default function Cadastros() {
         </div>
       </div>
 
-      {/* Abas Clientes / Funções */}
+      {/* Abas Clientes / Funções / Tipos de Audiência */}
       <div className="flex gap-2 border-b border-slate-200">
         <button
           type="button"
           onClick={() => setAba('clientes')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5 ${
-            aba === 'clientes'
-              ? 'border-blue-900 text-blue-900'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
+          className={abaClass(aba === 'clientes')}
         >
           <Building className="h-4 w-4" /> Clientes ({clientes.length})
         </button>
         <button
           type="button"
           onClick={() => setAba('funcoes')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5 ${
-            aba === 'funcoes'
-              ? 'border-blue-900 text-blue-900'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
+          className={abaClass(aba === 'funcoes')}
         >
           <HardHat className="h-4 w-4" /> Funções do Reclamante ({funcoes.length})
+        </button>
+        <button type="button" onClick={() => setAba('tipos')} className={abaClass(aba === 'tipos')}>
+          <Gavel className="h-4 w-4" /> Tipos de Audiência ({tipos.length})
         </button>
       </div>
 
@@ -230,12 +251,18 @@ export default function Cadastros() {
         <CardHeader className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-row items-center justify-between">
           <div>
             <CardTitle className="text-base font-bold text-slate-900">
-              {aba === 'clientes' ? 'Clientes Cadastrados' : 'Funções Cadastradas'}
+              {aba === 'clientes'
+                ? 'Clientes Cadastrados'
+                : aba === 'funcoes'
+                  ? 'Funções Cadastradas'
+                  : 'Tipos de Audiência Cadastrados'}
             </CardTitle>
             <CardDescription className="text-xs text-slate-500">
               {aba === 'clientes'
                 ? 'Aparecem no combo "Cliente" do cadastro de causas.'
-                : 'Aparecem no combo "Função do Reclamante" do cadastro de causas.'}
+                : aba === 'funcoes'
+                  ? 'Aparecem no combo "Função do Reclamante" do cadastro de causas.'
+                  : 'Aparecem no combo "Tipo de Audiência" do cadastro de audiências.'}
             </CardDescription>
           </div>
         </CardHeader>
@@ -250,13 +277,17 @@ export default function Cadastros() {
             <div className="p-12 text-center space-y-3">
               {aba === 'clientes' ? (
                 <Building className="h-10 w-10 text-slate-300 mx-auto" />
-              ) : (
+              ) : aba === 'funcoes' ? (
                 <HardHat className="h-10 w-10 text-slate-300 mx-auto" />
+              ) : (
+                <Gavel className="h-10 w-10 text-slate-300 mx-auto" />
               )}
               <p className="text-base font-semibold text-slate-800">
                 {aba === 'clientes'
                   ? 'Nenhum cliente cadastrado ainda.'
-                  : 'Nenhuma função cadastrada ainda.'}
+                  : aba === 'funcoes'
+                    ? 'Nenhuma função cadastrada ainda.'
+                    : 'Nenhum tipo de audiência cadastrado ainda.'}
               </p>
             </div>
           ) : (
@@ -335,14 +366,14 @@ export default function Cadastros() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {editando
-                ? `Editar ${aba === 'clientes' ? 'Cliente' : 'Função'}`
-                : `Novo ${aba === 'clientes' ? 'Cliente' : 'Função'}`}
+              {editando ? `Editar ${SINGULAR[aba]}` : `Novo ${SINGULAR[aba]}`}
             </DialogTitle>
             <DialogDescription>
               {aba === 'clientes'
                 ? 'Nome do cliente usado no cadastro de causas.'
-                : 'Função do reclamante (mão de obra terceirizada) usada no cadastro de causas.'}
+                : aba === 'funcoes'
+                  ? 'Função do reclamante (mão de obra terceirizada) usada no cadastro de causas.'
+                  : 'Tipo de audiência selecionado no cadastro de audiências.'}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={salvar} className="space-y-4">
@@ -352,7 +383,13 @@ export default function Cadastros() {
                 id="nome-cadastro"
                 value={nome}
                 onChange={(e) => setNome(e.target.value)}
-                placeholder={aba === 'clientes' ? 'Ex: Construtora Alfa' : 'Ex: Pedreiro'}
+                placeholder={
+                  aba === 'clientes'
+                    ? 'Ex: Construtora Alfa'
+                    : aba === 'funcoes'
+                      ? 'Ex: Pedreiro'
+                      : 'Ex: Instrução e Julgamento'
+                }
                 required
                 minLength={2}
                 maxLength={200}
@@ -400,13 +437,11 @@ export default function Cadastros() {
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              Excluir {aba === 'clientes' ? 'Cliente' : 'Função'}?
-            </AlertDialogTitle>
+            <AlertDialogTitle>Excluir {SINGULAR[aba]}?</AlertDialogTitle>
             <AlertDialogDescription>
               Esta ação excluirá permanentemente <strong>{deleteTarget?.nome}</strong>. Se ele
-              estiver em uso por alguma causa, a exclusão será bloqueada — nesse caso, prefira
-              desativar o registro.
+              estiver em uso por alguma causa ou audiência, a exclusão será bloqueada — nesse caso,
+              prefira desativar o registro.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

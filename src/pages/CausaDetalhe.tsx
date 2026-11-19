@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { causasService } from '@/services/causas'
 import { audienciasService } from '@/services/audiencias'
 import { prazosService } from '@/services/prazos'
-import { clientesService, funcoesService } from '@/services/cadastros'
+import { clientesService, funcoesService, tiposAudienciaService } from '@/services/cadastros'
 import {
   Causa,
   Audiencia,
@@ -14,6 +14,7 @@ import {
   FaseProcesso,
   Cliente,
   FuncaoReclamante,
+  TipoAudiencia,
 } from '@/types'
 import { FASES_PROCESSO, FASE_INICIAL, getFaseInfo, getFaseBadgeClass } from '@/lib/fases'
 import { recalcularFaseCausa } from '@/lib/fases-frontend'
@@ -132,16 +133,19 @@ export default function CausaDetalhe() {
   // Cadastros (clientes / funções) para os combos
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [funcoes, setFuncoes] = useState<FuncaoReclamante[]>([])
+  const [tiposAudiencia, setTiposAudiencia] = useState<TipoAudiencia[]>([])
 
   useEffect(() => {
     const carregarCadastros = async () => {
       try {
-        const [cls, fns] = await Promise.all([
+        const [cls, fns, tps] = await Promise.all([
           clientesService.getAll(true),
           funcoesService.getAll(true),
+          tiposAudienciaService.getAll(true),
         ])
         setClientes(cls as Cliente[])
         setFuncoes(fns as FuncaoReclamante[])
+        setTiposAudiencia(tps as TipoAudiencia[])
       } catch (error) {
         console.error('Erro ao carregar cadastros (clientes/funções):', error)
       }
@@ -156,6 +160,13 @@ export default function CausaDetalhe() {
   const [audHora, setAudHora] = useState('14:00')
   const [audLocal, setAudLocal] = useState('')
   const [audTipo, setAudTipo] = useState('')
+  const [audTipoId, setAudTipoId] = useState('')
+  // Combo de tipos: ativos primeiro; desativados só se já usados por alguma audiência
+  const idsTiposEmUso = new Set(audiencias.map((a) => a.tipo_audiencia).filter(Boolean))
+  const tiposDisponiveis = [
+    ...tiposAudiencia.filter((t) => t.ativo),
+    ...tiposAudiencia.filter((t) => !t.ativo && idsTiposEmUso.has(t.id)),
+  ]
   const [audPrazoPrep, setAudPrazoPrep] = useState('')
   const [audObs, setAudObs] = useState('')
   const [audFase, setAudFase] = useState<FaseProcesso>(FASE_INICIAL)
@@ -259,7 +270,9 @@ export default function CausaDetalhe() {
     setAudData(new Date().toISOString().split('T')[0])
     setAudHora('14:00')
     setAudLocal(causa ? causa.vara_juizo : '')
-    setAudTipo('Instrução e Julgamento')
+    const tipoPadrao = tiposAudiencia.find((t) => t.ativo && t.nome === 'Instrução e Julgamento')
+    setAudTipoId(tipoPadrao?.id ?? '')
+    setAudTipo(tipoPadrao?.nome ?? '')
     setAudPrazoPrep('5')
     setAudObs('')
     setAudFase(FASE_INICIAL)
@@ -273,6 +286,11 @@ export default function CausaDetalhe() {
     setAudHora(aud.hora || '14:00')
     setAudLocal(aud.local)
     setAudTipo(aud.tipo)
+    setAudTipoId(
+      aud.tipo_audiencia ||
+        tiposAudiencia.find((t) => t.nome.toLowerCase() === aud.tipo.trim().toLowerCase())?.id ||
+        '',
+    )
     setAudPrazoPrep(aud.prazo_preparacao_dias ? String(aud.prazo_preparacao_dias) : '')
     setAudObs(aud.observacoes || '')
     setAudFase(getFaseInfo(aud.fase).value)
@@ -302,6 +320,7 @@ export default function CausaDetalhe() {
           hora: audHora,
           local: audLocal.trim(),
           tipo: audTipo.trim(),
+          tipo_audiencia: audTipoId || undefined,
           prazo_preparacao_dias: isNaN(Number(prepDays)) ? undefined : prepDays,
           observacoes: audObs.trim() || undefined,
           fase: audFase,
@@ -314,6 +333,7 @@ export default function CausaDetalhe() {
           hora: audHora,
           local: audLocal.trim(),
           tipo: audTipo.trim(),
+          tipo_audiencia: audTipoId || undefined,
           prazo_preparacao_dias: isNaN(Number(prepDays)) ? undefined : prepDays,
           observacoes: audObs.trim() || undefined,
           fase: audFase,
@@ -1142,13 +1162,29 @@ export default function CausaDetalhe() {
 
               <div className="space-y-2">
                 <Label htmlFor="audTipo">Tipo de Audiência *</Label>
-                <Input
-                  id="audTipo"
-                  placeholder="Ex: Instrução e Julgamento, UNA, Inicial, Conciliação"
-                  value={audTipo}
-                  onChange={(e) => setAudTipo(e.target.value)}
-                  required
-                />
+                <Select
+                  value={audTipoId}
+                  onValueChange={(val: string) => {
+                    setAudTipoId(val)
+                    setAudTipo(tiposAudiencia.find((t) => t.id === val)?.nome ?? '')
+                  }}
+                >
+                  <SelectTrigger id="audTipo">
+                    <SelectValue placeholder="Selecione o tipo de audiência" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tiposDisponiveis.map((opt) => (
+                      <SelectItem key={opt.id} value={opt.id}>
+                        {opt.ativo ? opt.nome : `${opt.nome} (inativo)`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {tiposDisponiveis.length === 0 && (
+                  <span className="text-[11px] text-slate-500 block">
+                    Nenhum tipo cadastrado. Cadastre em Cadastros › Tipos de Audiência.
+                  </span>
+                )}
               </div>
 
               <div className="space-y-2">

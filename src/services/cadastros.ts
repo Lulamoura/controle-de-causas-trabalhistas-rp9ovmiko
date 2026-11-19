@@ -30,3 +30,4 @@ function makeService(collection: string) {
 
 export const clientesService = makeService('clientes')
 export const funcoesService = makeService('funcoes_reclamante')
+export const tiposAudienciaService = makeService('tipos_audiencia')
